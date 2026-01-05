@@ -1,18 +1,20 @@
 from http import HTTPStatus
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
+from database import get_session
+from models import User
 from schemas import (
     ErrorSchema,
     Message,
-    UserDBSchema,
     UserListSchema,
     UserOutSchema,
     UserSchema,
 )
 
 app = FastAPI()
-database: list[UserDBSchema] = []  # This will act as our in-memory database
 
 
 @app.get('/', response_model=Message)
@@ -25,11 +27,26 @@ def read_root():
     status_code=HTTPStatus.CREATED,
     response_model=UserOutSchema,
 )
-def create_user(user: UserSchema):
-    user_id = len(database) + 1
-    user_db = UserDBSchema(id=user_id, **user.model_dump())
-    database.append(user_db)
-    return user_db
+def create_user(user: UserSchema, session: Session = Depends(get_session)):
+    db_user = session.scalar(
+        select(User).where(
+            (User.email == user.email) | (User.username == user.username)
+        )
+    )
+
+    if db_user:
+        raise HTTPException(
+            status_code=HTTPStatus.CONFLICT,
+            detail='User with this email or username already exists!',
+        )
+
+    db_user = User(**user.model_dump())
+
+    session.add(db_user)
+    session.commit()
+    session.refresh(db_user)
+
+    return db_user
 
 
 @app.get(
@@ -37,8 +54,11 @@ def create_user(user: UserSchema):
     status_code=HTTPStatus.OK,
     response_model=UserListSchema,
 )
-def list_users():
-    return {'users': database}
+def list_users(
+    limit: int = 10, offset: int = 0, session: Session = Depends(get_session)
+):
+    users = session.scalars(select(User).limit(limit).offset(offset))
+    return {'users': users}
 
 
 @app.put(
@@ -47,31 +67,60 @@ def list_users():
     response_model=UserOutSchema,
     responses={HTTPStatus.NOT_FOUND: {'model': ErrorSchema}},
 )
-def update_user(user_id: int, user: UserSchema):
-    for index, existing_user in enumerate(database):
-        if existing_user.id == user_id:
-            updated_user = UserDBSchema(id=user_id, **user.model_dump())
-            database[index] = updated_user
-            return updated_user
+def update_user(
+    user_id: int,
+    user: UserSchema,
+    session: Session = Depends(get_session),
+):
+    db_user = session.scalar(select(User).where(User.id == user_id))
 
-    raise HTTPException(
-        status_code=HTTPStatus.NOT_FOUND,
-        detail='User not found!',
+    if not db_user:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail='User not found!',
+        )
+
+    existing_user = session.scalar(
+        select(User).where(
+            ((User.email == user.email) | (User.username == user.username))
+            & (User.id != user_id)
+        )
     )
+
+    if existing_user:
+        raise HTTPException(
+            status_code=HTTPStatus.CONFLICT,
+            detail='User with this email or username already exists!',
+        )
+
+    for key, value in user.model_dump().items():
+        setattr(db_user, key, value)
+
+    session.commit()
+    session.refresh(db_user)
+
+    return db_user
 
 
 @app.delete(
     '/users/{user_id}',
-    status_code=HTTPStatus.NO_CONTENT,
+    status_code=HTTPStatus.OK,
+    response_model=Message,
     responses={HTTPStatus.NOT_FOUND: {'model': ErrorSchema}},
 )
-def delete_user(user_id: int):
-    for index, existing_user in enumerate(database):
-        if existing_user.id == user_id:
-            del database[index]
-            return
+def delete_user(
+    user_id: int,
+    session: Session = Depends(get_session),
+):
+    db_user = session.scalar(select(User).where(User.id == user_id))
 
-    raise HTTPException(
-        status_code=HTTPStatus.NOT_FOUND,
-        detail='User not found!',
-    )
+    if not db_user:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail='User not found!',
+        )
+
+    session.delete(db_user)
+    session.commit()
+
+    return Message(message='User deleted successfully!')
