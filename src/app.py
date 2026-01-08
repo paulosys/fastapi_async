@@ -1,6 +1,7 @@
 from http import HTTPStatus
 
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -9,9 +10,16 @@ from models import User
 from schemas import (
     ErrorSchema,
     Message,
+    TokenSchema,
     UserListSchema,
     UserOutSchema,
     UserSchema,
+)
+from security import (
+    create_access_token,
+    get_current_user,
+    get_hashed_password,
+    verify_password,
 )
 
 app = FastAPI()
@@ -41,6 +49,7 @@ def create_user(user: UserSchema, session: Session = Depends(get_session)):
         )
 
     db_user = User(**user.model_dump())
+    db_user.password = get_hashed_password(user.password)
 
     session.add(db_user)
     session.commit()
@@ -55,7 +64,10 @@ def create_user(user: UserSchema, session: Session = Depends(get_session)):
     response_model=UserListSchema,
 )
 def list_users(
-    limit: int = 10, offset: int = 0, session: Session = Depends(get_session)
+    limit: int = 10,
+    offset: int = 0,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
 ):
     users = session.scalars(select(User).limit(limit).offset(offset))
     return {'users': users}
@@ -71,13 +83,12 @@ def update_user(
     user_id: int,
     user: UserSchema,
     session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
 ):
-    db_user = session.scalar(select(User).where(User.id == user_id))
-
-    if not db_user:
+    if current_user.id != user_id:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail='User not found!',
+            status_code=HTTPStatus.FORBIDDEN,
+            detail='You do not have permission to update this user!',
         )
 
     existing_user = session.scalar(
@@ -94,12 +105,14 @@ def update_user(
         )
 
     for key, value in user.model_dump().items():
-        setattr(db_user, key, value)
+        setattr(current_user, key, value)
+
+    current_user.password = get_hashed_password(user.password)
 
     session.commit()
-    session.refresh(db_user)
+    session.refresh(current_user)
 
-    return db_user
+    return current_user
 
 
 @app.delete(
@@ -111,16 +124,44 @@ def update_user(
 def delete_user(
     user_id: int,
     session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
 ):
-    db_user = session.scalar(select(User).where(User.id == user_id))
-
-    if not db_user:
+    if current_user.id != user_id:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail='User not found!',
+            status_code=HTTPStatus.FORBIDDEN,
+            detail='You do not have permission to delete this user!',
         )
 
-    session.delete(db_user)
+    session.delete(current_user)
     session.commit()
 
     return Message(message='User deleted successfully!')
+
+
+@app.post('/token', response_model=TokenSchema)
+def login_for_access_token(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    session: Session = Depends(get_session),
+):
+    user = session.scalar(
+        select(User).where(
+            (User.username == form_data.username)
+            | (User.email == form_data.username)
+        )
+    )
+
+    if not user:
+        raise HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED,
+            detail='Incorrect username or password',
+        )
+
+    if not verify_password(form_data.password, user.password):
+        raise HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED,
+            detail='Incorrect username or password',
+        )
+
+    token = create_access_token(data={'sub': user.username})
+
+    return TokenSchema(access_token=token, token_type='bearer')
