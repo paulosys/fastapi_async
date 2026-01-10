@@ -17,13 +17,11 @@ from sqlalchemy.orm import Session
 
 from database import get_session
 from models import User
-
-SECRET_KEY = 'DADA'
-ALGORITHM = 'HS256'
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+from settings import Settings
 
 pwd_context = PasswordHash.recommended()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl='token')
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl='auth/token')
+settings = Settings()
 
 
 def get_hashed_password(password: str) -> str:
@@ -38,11 +36,11 @@ def create_access_token(data: dict) -> str:
     to_encode = data.copy()
 
     now = datetime.now(tz=ZoneInfo('UTC'))
-    expire = now + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = now + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
 
     to_encode.update({'exp': expire})
 
-    return encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
 def get_current_user(
@@ -50,7 +48,11 @@ def get_current_user(
     token: str = Depends(oauth2_scheme),
 ) -> User:
     try:
-        payload = decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = decode(
+            token,
+            settings.SECRET_KEY,
+            algorithms=[settings.ALGORITHM],
+        )
         user_name: str = payload.get('sub')
 
         if user_name is None:

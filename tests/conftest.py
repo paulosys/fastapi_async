@@ -10,6 +10,7 @@ from sqlalchemy.pool import StaticPool
 from database import get_session
 from models import User, table_registry
 from security import get_hashed_password
+from settings import Settings
 from src.app import app
 
 
@@ -91,7 +92,12 @@ def token(client, user):
         'password': user.clean_password,
     }
 
-    response = client.post('/token', data=payload)
+    response = client.post('/auth/token', data=payload)
     response_data = response.json()
 
     return response_data['access_token']
+
+
+@pytest.fixture
+def settings():
+    return Settings()
