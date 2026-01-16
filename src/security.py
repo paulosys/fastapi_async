@@ -13,7 +13,7 @@ from jwt import (
 )
 from pwdlib import PasswordHash
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_session
 from models import User
@@ -43,8 +43,8 @@ def create_access_token(data: dict) -> str:
     return encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
-def get_current_user(
-    session: Session = Depends(get_session),
+async def get_current_user(
+    session: AsyncSession = Depends(get_session),
     token: str = Depends(oauth2_scheme),
 ) -> User:
     try:
@@ -81,7 +81,7 @@ def get_current_user(
             headers={'WWW-Authenticate': 'Bearer'},
         )
 
-    user = session.scalar(
+    user = await session.scalar(
         select(User).where(
             (User.username == user_name) | (User.email == user_name)
         )

@@ -1,9 +1,12 @@
+import pytest
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from models import User
 
 
-def test_create_user(session, mock_db_time):
+@pytest.mark.asyncio
+async def test_create_user(session: AsyncSession, mock_db_time):
     with mock_db_time(model=User) as time:
         new_user = User(
             username='test',
@@ -12,9 +15,9 @@ def test_create_user(session, mock_db_time):
         )
 
         session.add(new_user)
-        session.commit()
+        await session.commit()
 
-    user = session.scalar(select(User).where(User.username == 'test'))
+    user = await session.scalar(select(User).where(User.username == 'test'))
 
     assert user is not None
     assert user.id == 1
