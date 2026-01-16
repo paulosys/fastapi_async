@@ -74,21 +74,12 @@ async def test_update_user_should_return_updated_user(client, user, token):
 async def test_update_user_with_existing_email_should_return_409(
     client,
     user,
+    another_user,
     token,
 ):
-    client.post(
-        '/users/',
-        json={
-            'username': 'anotheruser',
-            'email': 'anotheruser@example.com',
-            'password': 'securepassword123',
-        },
-        headers={'Authorization': f'Bearer {token}'},
-    )
-
     payload = {
         'username': user.username,
-        'email': 'anotheruser@example.com',
+        'email': another_user.email,
         'password': 'securepassword123',
     }
 
@@ -106,22 +97,9 @@ async def test_update_user_with_existing_email_should_return_409(
 @pytest.mark.asyncio
 async def test_update_other_user_should_return_403(
     client,
-    user,
+    another_user,
     token,
 ):
-    # Create another user
-    response = client.post(
-        '/users/',
-        json={
-            'username': 'otheruser',
-            'email': 'otheruser@example.com',
-            'password': 'securepassword123',
-        },
-        headers={'Authorization': f'Bearer {token}'},
-    )
-
-    other_user_id = response.json()['id']
-
     payload = {
         'username': 'hackeruser',
         'email': 'hackeruser@example.com',
@@ -129,7 +107,7 @@ async def test_update_other_user_should_return_403(
     }
 
     response = client.put(
-        f'/users/{other_user_id}',
+        f'/users/{another_user.id}',
         json=payload,
         headers={'Authorization': f'Bearer {token}'},
     )
@@ -154,24 +132,11 @@ async def test_delete_user_should_return_no_content(client, user, token):
 @pytest.mark.asyncio
 async def test_delete_other_user_should_return_403(
     client,
-    user,
+    another_user,
     token,
 ):
-    # Create another user
-    response = client.post(
-        '/users/',
-        json={
-            'username': 'otheruser',
-            'email': 'otheruser@example.com',
-            'password': 'securepassword123',
-        },
-        headers={'Authorization': f'Bearer {token}'},
-    )
-
-    other_user_id = response.json()['id']
-
     response = client.delete(
-        f'/users/{other_user_id}',
+        f'/users/{another_user.id}',
         headers={'Authorization': f'Bearer {token}'},
     )
 

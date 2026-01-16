@@ -11,6 +11,7 @@ from models import User
 from schemas import TokenSchema
 from security import (
     create_access_token,
+    get_current_user,
     verify_password,
 )
 
@@ -46,4 +47,13 @@ async def login_for_access_token(
 
     token = create_access_token(data={'sub': user.username})
 
-    return TokenSchema(access_token=token, token_type='bearer')
+    return TokenSchema(access_token=token, token_type='Bearer')
+
+
+@router.post('/refresh-token', response_model=TokenSchema)
+async def refresh_access_token(
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    token = create_access_token(data={'sub': current_user.username})
+
+    return TokenSchema(access_token=token, token_type='Bearer')
