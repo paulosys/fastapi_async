@@ -2,6 +2,7 @@ from contextlib import contextmanager
 from datetime import datetime
 
 import factory
+import factory.fuzzy
 import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
@@ -10,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import StaticPool
 
 from database import get_session
-from models import User, table_registry
+from models import Todo, TodoState, User, table_registry
 from security import get_hashed_password
 from settings import Settings
 from src.app import app
@@ -127,3 +128,14 @@ class UserFactory(factory.Factory):
     username = factory.Sequence(lambda n: f'user{n}')
     email = factory.LazyAttribute(lambda obj: f'{obj.username}@email.com')
     password = factory.LazyFunction(lambda: 'securepassword123')
+
+
+class TodoFactory(factory.Factory):
+    class Meta:
+        model = Todo
+
+    title = factory.Sequence(lambda n: f'Todo Title {n}')
+    description = factory.Faker('sentence')
+    state = factory.fuzzy.FuzzyChoice(TodoState)
+
+    user_id = 1

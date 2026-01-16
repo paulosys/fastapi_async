@@ -24,3 +24,4 @@ async def test_create_user(session: AsyncSession, mock_db_time):
     assert user.username == 'test'
     assert user.email == 'test@test.com'
     assert user.created_at == time
+    assert user.todos == []
