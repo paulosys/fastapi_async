@@ -5,9 +5,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing_extensions import Annotated
 
-from database import get_session
-from models import User
-from schemas import (
+from fastapi_async.database import get_session
+from fastapi_async.models import User
+from fastapi_async.schemas import (
     ErrorSchema,
     FilterPageSchema,
     Message,
@@ -15,7 +15,7 @@ from schemas import (
     UserOutSchema,
     UserSchema,
 )
-from security import get_current_user, get_hashed_password
+from fastapi_async.security import get_current_user, get_hashed_password
 
 router = APIRouter(prefix='/users', tags=['users'])
 Session = Annotated[AsyncSession, Depends(get_session)]

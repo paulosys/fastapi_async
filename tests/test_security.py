@@ -3,7 +3,7 @@ from http import HTTPStatus
 
 from jwt import decode, encode
 
-from security import create_access_token
+from fastapi_async.security import create_access_token
 
 
 def test_jwt(settings):

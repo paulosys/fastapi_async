@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
-from settings import Settings
+from fastapi_async.settings import Settings
 
 _engine = create_async_engine(Settings().DATABASE_URL)
 

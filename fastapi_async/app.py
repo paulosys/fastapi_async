@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
-from routes import auth, todos, users
-from schemas import Message
+from fastapi_async.routes import auth, todos, users
+from fastapi_async.schemas import Message
 
 app = FastAPI()
 

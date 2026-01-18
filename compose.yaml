@@ -1,0 +1,24 @@
+services:
+  database:
+    image: postgres:13.1-alpine
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: app_db
+    ports:
+      - "5432:5432"
+  api:
+    image: fastapi_async_api
+    build: .
+    entrypoint: ./entrypoint.sh
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:secret@database:5432/app_db
+    depends_on:
+      - database
+
+volumes:
+  pg_data:

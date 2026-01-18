@@ -6,10 +6,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing_extensions import Annotated
 
-from database import get_session
-from models import User
-from schemas import TokenSchema
-from security import (
+from fastapi_async.database import get_session
+from fastapi_async.models import User
+from fastapi_async.schemas import TokenSchema
+from fastapi_async.security import (
     create_access_token,
     get_current_user,
     verify_password,

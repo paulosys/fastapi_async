@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
-from models import TodoState
+from fastapi_async.models import TodoState
 
 
 class Message(BaseModel):

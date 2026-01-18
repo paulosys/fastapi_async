@@ -2,7 +2,7 @@ from http import HTTPStatus
 
 import pytest
 
-from schemas import UserOutSchema
+from fastapi_async.schemas import UserOutSchema
 
 
 @pytest.mark.asyncio

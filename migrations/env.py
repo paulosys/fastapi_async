@@ -6,8 +6,8 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
-from src.models import table_registry
-from src.settings import Settings
+from fastapi_async.models import table_registry
+from fastapi_async.settings import Settings
 
 
 # this is the Alembic Config object, which provides
