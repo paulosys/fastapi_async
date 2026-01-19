@@ -66,4 +66,3 @@ format = 'ruff format'
 run = 'fastapi dev src/app.py'
 
 test = 'pytest -s -x --cov=src -vv'
-post_test = 'coverage html'
