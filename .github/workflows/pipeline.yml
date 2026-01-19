@@ -2,7 +2,7 @@ name: pipeline
 on: [push, pull_request]
 
 jobs:
-  test:
+  ci:
     runs-on: ubuntu-latest
 
     steps:
@@ -20,5 +20,14 @@ jobs:
       - name: Install dependencies
         run: poetry install
 
-      - name: Execute tests
+      - name: Run lint
+        run: poetry run task lint
+
+      - name: Run tests
         run: poetry run task test
+
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      SECRET_KEY: ${{ secrets.SECRET_KEY }}
+      ALGORITHM: ${{ secrets.ALGORITHM }}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${{ secrets.ACCESS_TOKEN_EXPIRE_MINUTES }}

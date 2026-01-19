@@ -10,12 +10,11 @@ from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from testcontainers.postgres import PostgresContainer
 
-
+from fastapi_async.app import app
 from fastapi_async.database import get_session
 from fastapi_async.models import Todo, TodoState, User, table_registry
 from fastapi_async.security import get_hashed_password
 from fastapi_async.settings import Settings
-from fastapi_async.app import app
 
 
 @pytest.fixture
